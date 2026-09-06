@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { UserPlus, Eye, EyeOff, AlertCircle, Check, Shield, UserCheck } from 'lucide-react';
 import { Button } from '../components/Button';
 import { authApi } from '../api/auth';
+import { useAuthStore } from '../hooks/useAuth';
 
 export function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -14,6 +15,7 @@ export function RegisterPage() {
   const [adminExists, setAdminExists] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
@@ -81,8 +83,23 @@ export function RegisterPage() {
                 <Check size={24} className="text-stock-normal" />
               </div>
               <p className="text-sm font-medium text-stock-normal">Compte créé avec succès</p>
-              <p className="text-xs text-text-secondary dark:text-[#8B9199] mt-2">Vous pouvez maintenant vous connecter</p>
-              <Button onClick={() => navigate('/login')} className="w-full mt-4" size="lg">
+              <p className="text-xs text-text-secondary dark:text-[#8B9199] mt-2">
+                {loggingIn ? 'Connexion en cours...' : 'Vous pouvez maintenant vous connecter'}
+              </p>
+              <Button
+                onClick={async () => {
+                  setLoggingIn(true);
+                  try {
+                    await useAuthStore.getState().login(username, password);
+                    navigate('/');
+                  } catch {
+                    navigate('/login');
+                  }
+                }}
+                loading={loggingIn}
+                className="w-full mt-4"
+                size="lg"
+              >
                 Se connecter
               </Button>
             </motion.div>
