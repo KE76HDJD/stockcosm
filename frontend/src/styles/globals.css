@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background-color: #F6F7F5;
+  color: #1B1D1F;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dark body,
+.dark {
+  background-color: #121416;
+  color: #E4E6E9;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Sora', sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.25);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+input, select, textarea {
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}

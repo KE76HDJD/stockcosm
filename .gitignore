@@ -1,0 +1,37 @@
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# App
+backend/uploads/
+backend/backups/
+backend/logs/
+logs/
+*.log
+.pids/
+
+# Binaries
+caddy
+cloudflared
+
+# Clever Cloud
+.clever.json

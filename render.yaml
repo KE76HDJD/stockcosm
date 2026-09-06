@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: stockcosm-api
+    runtime: python
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: stockcosm-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: COOKIE_SECURE
+        value: true
+      - key: PYTHON_VERSION
+        value: 3.12.2
+      - key: CORS_ORIGINS
+        value: '["https://stockcosm-frontend.onrender.com"]'
+
+  - type: static
+    name: stockcosm-frontend
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://stockcosm-api.onrender.com/api/*
+
+databases:
+  - name: stockcosm-db
+    plan: free
+    databaseName: gestion_stock_cosmetiques
+    user: postgres
