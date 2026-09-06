@@ -2,7 +2,7 @@ services:
   - type: web
     name: stockcosm-api
     runtime: python
-    buildCommand: cd backend && pip install -r requirements.txt
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt
     startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
     envVars:
       - key: DATABASE_URL
@@ -18,16 +18,12 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.2
       - key: CORS_ORIGINS
-        value: '["https://stockcosm-frontend.onrender.com"]'
+        value: '["https://stockcosm-api.onrender.com","https://stockcosm-frontend.onrender.com","http://localhost:8443"]'
 
   - type: static
     name: stockcosm-frontend
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://stockcosm-api.onrender.com/api/*
 
 databases:
   - name: stockcosm-db
