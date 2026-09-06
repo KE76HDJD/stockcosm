@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './hooks/useAuth';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/Login';
 import { RegisterPage } from './pages/Register';
@@ -37,32 +38,34 @@ export default function App() {
   }, [init]);
 
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/produits" element={<ProduitsPage />} />
-              <Route path="/categories" element={<CategoriesPage />} />
-              <Route path="/ventes/nouvelle" element={<NouvelleVentePage />} />
-              <Route path="/ventes" element={<VentesPage />} />
-              <Route path="/entrees" element={<EntreesPage />} />
-              <Route path="/mouvements" element={<MouvementsPage />} />
-              <Route path="/inventaire" element={<InventairePage />} />
-              <Route path="/utilisateurs" element={<UtilisateursPage />} />
-              <Route path="/profil" element={<ProfilPage />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-      </BrowserRouter>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/produits" element={<ProduitsPage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/ventes/nouvelle" element={<NouvelleVentePage />} />
+                <Route path="/ventes" element={<VentesPage />} />
+                <Route path="/entrees" element={<EntreesPage />} />
+                <Route path="/mouvements" element={<MouvementsPage />} />
+                <Route path="/inventaire" element={<InventairePage />} />
+                <Route path="/utilisateurs" element={<UtilisateursPage />} />
+                <Route path="/profil" element={<ProfilPage />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

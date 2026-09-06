@@ -140,6 +140,7 @@ export function LoginPage() {
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Code incorrect');
+    } finally {
       setLoading(false);
     }
   };

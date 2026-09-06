@@ -49,9 +49,10 @@ export function ProduitsPage() {
       if (produit) {
         setHighlightedId(highlight);
         openDetail(produit);
-        setTimeout(() => setHighlightedId(null), 3000);
+        const timer = setTimeout(() => setHighlightedId(null), 3000);
         searchParams.delete('highlight');
         setSearchParams(searchParams, { replace: true });
+        return () => clearTimeout(timer);
       }
     }
   }, [searchParams, produits]);
@@ -78,16 +79,21 @@ export function ProduitsPage() {
 
   const openDetail = async (p: Produit) => {
     setDetailProduit(p);
-    const stock = await produitsApi.get(p.id).then((prod) => ({
-      produit_id: prod.id,
-      produit_nom: prod.name,
-      stock_actuel: prod.stock_quantity,
-      stock_reel: prod.stock_quantity,
-      alert_threshold: prod.alert_threshold,
-      statut: prod.stock_quantity <= 0 ? 'rupture' : prod.stock_quantity <= prod.alert_threshold ? 'faible' : 'normal',
-    } as ProduitStock));
-    setStockInfo(stock);
-    await loadMouvements(p.id, 1);
+    try {
+      const stock = await produitsApi.get(p.id).then((prod) => ({
+        produit_id: prod.id,
+        produit_nom: prod.name,
+        stock_actuel: prod.stock_quantity,
+        stock_reel: prod.stock_quantity,
+        alert_threshold: prod.alert_threshold,
+        statut: prod.stock_quantity <= 0 ? 'rupture' : prod.stock_quantity <= prod.alert_threshold ? 'faible' : 'normal',
+      } as ProduitStock));
+      setStockInfo(stock);
+      await loadMouvements(p.id, 1);
+    } catch {
+      toast.error('Erreur lors du chargement du produit');
+      setDetailProduit(null);
+    }
   };
 
   const handleCreate = async () => {

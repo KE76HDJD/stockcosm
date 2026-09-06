@@ -131,10 +131,11 @@ export function AssistantPanel({ isOpen, onClose, onMinimize }: AssistantPanelPr
     : assistantSuggestions;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
+    <>
+      <AnimatePresence>
+        {isOpen && (
           <motion.div
+            key="assistant-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -142,15 +143,19 @@ export function AssistantPanel({ isOpen, onClose, onMinimize }: AssistantPanelPr
             className="fixed inset-0 bg-black/20 z-40"
             onClick={onClose}
           />
-
-          <motion.div
-            initial={{ x: 420, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 420, opacity: 0 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-white dark:bg-[#1C1F22] z-50 flex flex-col shadow-2xl"
-            style={{ boxShadow: '-8px 0 40px rgba(0,0,0,0.12)' }}
-          >
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="assistant-panel"
+          initial={{ x: 420, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 420, opacity: 0 }}
+          transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+          className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-white dark:bg-[#1C1F22] z-50 flex flex-col shadow-2xl"
+          style={{ boxShadow: '-8px 0 40px rgba(0,0,0,0.12)' }}
+        >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border dark:border-white/[0.08] bg-porcelaine/50 dark:bg-white/[0.03]">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-accent dark:bg-[#3ECF8E] flex items-center justify-center">
@@ -335,8 +340,8 @@ export function AssistantPanel({ isOpen, onClose, onMinimize }: AssistantPanelPr
               </form>
             </div>
           </motion.div>
-        </>
       )}
     </AnimatePresence>
+    </>
   );
 }

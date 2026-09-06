@@ -86,16 +86,21 @@ export function CategoriesPage() {
   const openProductDetail = async (p: Produit) => {
     setDetailProduit(p);
     setDetailCatName(selectedCat?.name || '');
-    const stock = await produitsApi.get(p.id).then((prod) => ({
-      produit_id: prod.id,
-      produit_nom: prod.name,
-      stock_actuel: prod.stock_quantity,
-      stock_reel: prod.stock_quantity,
-      alert_threshold: prod.alert_threshold,
-      statut: prod.stock_quantity <= 0 ? 'rupture' : prod.stock_quantity <= prod.alert_threshold ? 'faible' : 'normal',
-    } as ProduitStock));
-    setStockInfo(stock);
-    await loadMouvements(p.id, 1);
+    try {
+      const stock = await produitsApi.get(p.id).then((prod) => ({
+        produit_id: prod.id,
+        produit_nom: prod.name,
+        stock_actuel: prod.stock_quantity,
+        stock_reel: prod.stock_quantity,
+        alert_threshold: prod.alert_threshold,
+        statut: prod.stock_quantity <= 0 ? 'rupture' : prod.stock_quantity <= prod.alert_threshold ? 'faible' : 'normal',
+      } as ProduitStock));
+      setStockInfo(stock);
+      await loadMouvements(p.id, 1);
+    } catch {
+      toast.error('Erreur lors du chargement du produit');
+      setDetailProduit(null);
+    }
   };
 
   if (isLoading) return <div className="space-y-4">{Array.from({length:3}).map((_,i)=><div key={i} className="h-14 bg-gray-200 dark:bg-white/[0.05] rounded animate-pulse" />)}</div>;

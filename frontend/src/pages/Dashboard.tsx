@@ -18,14 +18,16 @@ function CountUp({ value }: { value: number }) {
   useEffect(() => {
     if (value === 0) { setDisplayed(0); return; }
     let start = 0;
+    let frameId: number;
     const duration = 800;
     const step = (timestamp: number) => {
       if (!start) start = timestamp;
       const progress = Math.min((timestamp - start) / duration, 1);
       setDisplayed(Math.floor(progress * value));
-      if (progress < 1) requestAnimationFrame(step);
+      if (progress < 1) frameId = requestAnimationFrame(step);
     };
-    requestAnimationFrame(step);
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
   }, [value]);
   return <>{displayed.toLocaleString('fr-FR')}</>;
 }

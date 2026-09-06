@@ -43,8 +43,13 @@ export function VentesPage() {
 
   const openDetail = async (id: string) => {
     setDetailId(id);
-    const d = await ventesApi.get(id);
-    setDetail(d);
+    try {
+      const d = await ventesApi.get(id);
+      setDetail(d);
+    } catch {
+      toast.error('Erreur lors du chargement de la vente');
+      setDetailId(null);
+    }
   };
 
   const handleCancel = async (id: string) => {

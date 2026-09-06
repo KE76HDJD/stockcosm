@@ -189,32 +189,36 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
       {/* Mobile drawer */}
       <AnimatePresence>
         {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 z-40 lg:hidden"
-              onClick={onClose}
-            />
-            <motion.aside
-              initial={{ x: -280 }}
-              animate={{ x: 0 }}
-              exit={{ x: -280 }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed left-0 top-0 bottom-0 w-[280px] bg-white dark:bg-[#1C1F22] z-50 flex flex-col lg:hidden shadow-xl"
-            >
-              <div className="absolute top-4 right-4 z-10">
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-button hover:bg-porcelaine dark:hover:bg-white/[0.05] transition-colors"
-                >
-                  <X size={20} className="text-text-secondary dark:text-[#8B9199]" />
-                </button>
-              </div>
-              <SidebarContent onNavigate={onClose} />
-            </motion.aside>
-          </>
+          <motion.div
+            key="sidebar-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+            onClick={onClose}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.aside
+            key="sidebar-panel"
+            initial={{ x: -280 }}
+            animate={{ x: 0 }}
+            exit={{ x: -280 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            className="fixed left-0 top-0 bottom-0 w-[280px] bg-white dark:bg-[#1C1F22] z-50 flex flex-col lg:hidden shadow-xl"
+          >
+            <div className="absolute top-4 right-4 z-10">
+              <button
+                onClick={onClose}
+                className="p-2 rounded-button hover:bg-porcelaine dark:hover:bg-white/[0.05] transition-colors"
+              >
+                <X size={20} className="text-text-secondary dark:text-[#8B9199]" />
+              </button>
+            </div>
+            <SidebarContent onNavigate={onClose} />
+          </motion.aside>
         )}
       </AnimatePresence>
     </>
