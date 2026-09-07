@@ -42,6 +42,10 @@ def get_settings() -> Settings:
         )
     elif settings.DATABASE_URL.startswith("postgresql://"):
         settings.DATABASE_URL = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+    if "channel_binding=" in settings.DATABASE_URL:
+        settings.DATABASE_URL = settings.DATABASE_URL.replace("&channel_binding=require", "").replace("?channel_binding=require", "")
+
     if settings.ENVIRONMENT == "production":
         settings.COOKIE_SECURE = True
     return settings
