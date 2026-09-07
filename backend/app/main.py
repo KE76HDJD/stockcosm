@@ -1,11 +1,13 @@
 import logging
+import time
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, FileResponse
 from contextlib import asynccontextmanager
-from app.database import engine, Base
+from sqlalchemy import text
+from app.database import engine, Base, AsyncSessionLocal
 from app.config import get_settings
 from app.middleware import SecurityHeadersMiddleware
 from app.routers import auth, produits, ventes, dashboard, assistant, admin
@@ -17,6 +19,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
 )
+logger = logging.getLogger("stockcosm")
 logging.getLogger("stockcosm.audit").setLevel(logging.INFO)
 
 FRONTEND_DIR = Path(__file__).parent.parent / "static"
@@ -54,11 +57,13 @@ async def not_found_handler(request: Request, exc):
 
 @app.exception_handler(500)
 async def internal_error_handler(request: Request, exc):
+    logger.error(f"500 {request.method} {request.url.path}: {exc}", exc_info=True)
     return JSONResponse(status_code=500, content={"detail": "Erreur interne du serveur"})
 
 
 @app.exception_handler(Exception)
 async def generic_error_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled {request.method} {request.url.path}: {exc}", exc_info=True)
     return JSONResponse(status_code=500, content={"detail": "Une erreur inattendue est survenue"})
 
 app.add_middleware(
@@ -87,4 +92,15 @@ if FRONTEND_DIR.exists():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "service": "gestion-stock-cosmetiques"}
+    db_ok = False
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SELECT 1"))
+            db_ok = True
+    except Exception as e:
+        logger.warning(f"Health check DB failed: {e}")
+    return {
+        "status": "healthy" if db_ok else "degraded",
+        "service": "gestion-stock-cosmetiques",
+        "database": "ok" if db_ok else "error",
+    }
