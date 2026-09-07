@@ -81,14 +81,6 @@ app.include_router(dashboard.router)
 app.include_router(assistant.router)
 app.include_router(admin.router)
 
-import os
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=os.path.dirname(settings.UPLOAD_DIR)), name="uploads")
-
-if FRONTEND_DIR.exists():
-    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="frontend-assets")
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=False), name="frontend-static")
-
 
 @app.get("/health")
 async def health_check():
@@ -104,3 +96,12 @@ async def health_check():
         "service": "gestion-stock-cosmetiques",
         "database": "ok" if db_ok else "error",
     }
+
+
+import os
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=os.path.dirname(settings.UPLOAD_DIR)), name="uploads")
+
+if FRONTEND_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="frontend-assets")
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=False), name="frontend-static")
