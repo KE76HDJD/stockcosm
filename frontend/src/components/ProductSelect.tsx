@@ -124,9 +124,10 @@ export function ProductSelect({
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = e.target as Node;
+      const inTrigger = containerRef.current?.contains(target);
+      const inDropdown = document.querySelector('[data-ps-dropdown]')?.contains(target);
+      if (!inTrigger && !inDropdown) setIsOpen(false);
     };
     const handleScroll = () => { if (isOpen) updatePosition(); };
     document.addEventListener('mousedown', handleClickOutside);
@@ -229,6 +230,7 @@ export function ProductSelect({
 
   const dropdown = isOpen ? createPortal(
     <div
+      data-ps-dropdown
       style={{ position: 'absolute', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
     >
       <div className="bg-white dark:bg-[#1C1F22] border border-border dark:border-white/[0.08] rounded-card shadow-xl overflow-hidden">

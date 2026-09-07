@@ -29,7 +29,7 @@ const navItems = [
   { to: '/entrees', icon: ArrowDownToLine, label: 'Entrées de stock', roles: ['ADMIN', 'ASSISTANT'] },
   { to: '/mouvements', icon: History, label: 'Sorties de stock', roles: ['ADMIN', 'ASSISTANT'] },
   { to: '/inventaire', icon: FileText, label: 'Inventaire', roles: ['ADMIN', 'ASSISTANT'] },
-  { to: '/utilisateurs', icon: Users, label: 'Utilisateurs', roles: ['ADMIN', 'ASSISTANT'] },
+  { to: '/utilisateurs', icon: Users, label: 'Utilisateurs', roles: ['ADMIN'] },
   { to: '/profil', icon: UserCog, label: 'Mon profil', roles: ['ADMIN', 'ASSISTANT'] },
 ];
 

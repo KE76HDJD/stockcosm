@@ -21,9 +21,9 @@ export function EntreesPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const load = () => withLoading(async () => {
-    const [e, p] = await Promise.all([stockApi.listEntrees(), produitsApi.list({ limit: 100 })]);
-    setEntrees(e);
-    setProduits(p.filter((x) => x.status === 'ACTIVE'));
+    const [e, p] = await Promise.allSettled([stockApi.listEntrees(), produitsApi.list({ limit: 100 })]);
+    if (e.status === 'fulfilled') setEntrees(e.value);
+    if (p.status === 'fulfilled') setProduits(p.value.filter((x) => x.status === 'ACTIVE'));
   });
 
   useEffect(() => { load(); }, []);

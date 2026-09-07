@@ -59,7 +59,7 @@ export default function App() {
                 <Route path="/entrees" element={<EntreesPage />} />
                 <Route path="/mouvements" element={<MouvementsPage />} />
                 <Route path="/inventaire" element={<InventairePage />} />
-                <Route path="/utilisateurs" element={<UtilisateursPage />} />
+                <Route path="/utilisateurs" element={<AdminRoute><UtilisateursPage /></AdminRoute>} />
                 <Route path="/profil" element={<ProfilPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
