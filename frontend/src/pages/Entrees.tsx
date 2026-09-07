@@ -5,7 +5,6 @@ import { Plus, ArrowDownToLine } from 'lucide-react';
 import { produitsApi, stockApi } from '../api/produits';
 import { useLoading } from '../hooks/useLoading';
 import { Button } from '../components/Button';
-import { Modal } from '../components/Modal';
 import { EmptyState } from '../components/EmptyState';
 import { ProductSelect } from '../components/ProductSelect';
 import { toast } from '../components/Toast';
@@ -17,7 +16,7 @@ export function EntreesPage() {
   const navigate = useNavigate();
   const [entrees, setEntrees] = useState<Mouvement[]>([]);
   const [produits, setProduits] = useState<Produit[]>([]);
-  const [showModal, setShowModal] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ produit_id: '', quantity: 1 });
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,9 +28,9 @@ export function EntreesPage() {
 
   useEffect(() => { load(); }, []);
 
-  const openModal = () => {
+  const openForm = () => {
     setForm({ produit_id: '', quantity: 1 });
-    setShowModal(true);
+    setShowForm(true);
   };
 
   const handleSubmit = async () => {
@@ -50,7 +49,7 @@ export function EntreesPage() {
         label: 'Voir le stock',
         onClick: () => navigate(`/produits?highlight=${form.produit_id}`),
       });
-      setShowModal(false);
+      setShowForm(false);
       setForm({ produit_id: '', quantity: 1 });
       await load();
     } catch (err: any) {
@@ -63,17 +62,46 @@ export function EntreesPage() {
   if (isLoading) return <div className="space-y-4">{Array.from({length:5}).map((_,i)=><div key={i} className="h-12 bg-gray-200 dark:bg-white/[0.05] rounded animate-pulse" />)}</div>;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 max-w-3xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="font-heading font-700 text-fluid-2xl sm:text-2xl">Entrées de stock</h1>
           <p className="text-text-secondary dark:text-[#8B9199] text-fluid-sm sm:text-sm mt-1">{entrees.length} entrée{entrees.length > 1 ? 's' : ''} enregistrée{entrees.length > 1 ? 's' : ''}</p>
         </div>
-        <Button onClick={openModal} className="w-full sm:w-auto">
-          <Plus size={16} />
-          Nouvelle entrée
-        </Button>
+        {!showForm && (
+          <Button onClick={openForm} className="w-full sm:w-auto">
+            <Plus size={16} />
+            Nouvelle entrée
+          </Button>
+        )}
       </div>
+
+      {showForm && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-4 sm:p-6 space-y-4"
+        >
+          <h2 className="text-base font-heading font-600 text-text-primary dark:text-[#E4E6E9]">Nouvelle entrée de stock</h2>
+          <div>
+            <label className="text-sm text-text-secondary dark:text-[#8B9199] mb-1 block">Produit *</label>
+            <ProductSelect
+              value={form.produit_id}
+              onChange={(v) => setForm({ ...form, produit_id: v })}
+              produits={produits}
+              placeholder="Sélectionner un produit..."
+            />
+          </div>
+          <div>
+            <label className="text-sm text-text-secondary dark:text-[#8B9199] mb-1 block">Quantité *</label>
+            <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })} min="1" className="w-full px-3 py-2.5 bg-porcelaine dark:bg-white/[0.05] border border-border dark:border-white/[0.08] rounded-button text-sm dark:text-[#E4E6E9] dark:placeholder:text-[#8B9199]/50 dark:focus:border-[#3ECF8E]/40" />
+          </div>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setShowForm(false)} className="w-full sm:w-auto">Annuler</Button>
+            <Button onClick={handleSubmit} loading={submitting} className="w-full sm:w-auto">Enregistrer</Button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Desktop table */}
       <div className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] overflow-hidden hidden sm:block">
@@ -133,31 +161,9 @@ export function EntreesPage() {
         </AnimatePresence>
       </div>
 
-      {entrees.length === 0 && (
+      {entrees.length === 0 && !showForm && (
         <EmptyState icon={ArrowDownToLine} title="Aucune entrée de stock" description="Enregistrez une première entrée de stock." />
       )}
-
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Nouvelle entrée de stock">
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm text-text-secondary dark:text-[#8B9199] mb-1 block">Produit *</label>
-            <ProductSelect
-              value={form.produit_id}
-              onChange={(v) => setForm({ ...form, produit_id: v })}
-              produits={produits}
-              placeholder="Sélectionner un produit..."
-            />
-          </div>
-          <div>
-            <label className="text-sm text-text-secondary dark:text-[#8B9199] mb-1 block">Quantité *</label>
-            <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })} min="1" className="w-full px-3 py-2.5 bg-porcelaine dark:bg-white/[0.05] border border-border dark:border-white/[0.08] rounded-button text-sm dark:text-[#E4E6E9] dark:placeholder:text-[#8B9199]/50 dark:focus:border-[#3ECF8E]/40" />
-          </div>
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setShowModal(false)} className="w-full sm:w-auto">Annuler</Button>
-            <Button onClick={handleSubmit} loading={submitting} className="w-full sm:w-auto">Enregistrer</Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }
