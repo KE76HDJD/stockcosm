@@ -82,6 +82,7 @@ app.mount("/uploads", StaticFiles(directory=os.path.dirname(settings.UPLOAD_DIR)
 
 if FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="frontend-assets")
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=False), name="frontend-static")
 
 
 @app.get("/health")
