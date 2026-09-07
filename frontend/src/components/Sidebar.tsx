@@ -16,6 +16,7 @@ import {
   UserCog,
   Menu,
   X,
+  Download,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -115,6 +116,32 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const filtered = navItems.filter((item) => item.roles.includes(user?.role || ''));
+  const [canInstall, setCanInstall] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone) {
+      setIsInstalled(true);
+      return;
+    }
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setCanInstall(true);
+      window._deferredInstallPrompt = e as any;
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    const prompt = window._deferredInstallPrompt;
+    if (prompt) {
+      prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      if (outcome === 'accepted') setCanInstall(false);
+      window._deferredInstallPrompt = null;
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -166,6 +193,15 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
           <p className="text-xs text-text-secondary dark:text-[#8B9199] capitalize">{user?.role === 'ADMIN' ? 'Administrateur' : 'Assistant'}</p>
         </div>
         <ThemeToggle />
+        {canInstall && !isInstalled && (
+          <button
+            onClick={handleInstall}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-button text-sm font-medium text-vert dark:text-[#3ECF8E] bg-vert/5 dark:bg-[#3ECF8E]/10 hover:bg-vert/10 dark:hover:bg-[#3ECF8E]/15 transition-colors w-full mt-1"
+          >
+            <Download size={18} />
+            <span>Installer l'application</span>
+          </button>
+        )}
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-button text-sm text-text-secondary dark:text-[#8B9199] hover:text-stock-rupture hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors w-full"
