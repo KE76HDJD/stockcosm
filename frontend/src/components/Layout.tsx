@@ -3,6 +3,7 @@ import { Sidebar, HamburgerButton } from './Sidebar';
 import { ToastContainer } from './Toast';
 import { AssistantFab } from './AssistantFab';
 import { AssistantPanel } from './AssistantPanel';
+import { InstallPWA } from './InstallPWA';
 import { Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -36,6 +37,7 @@ export function Layout() {
         onMinimize={() => setAssistantOpen(false)}
       />
 
+      <InstallPWA />
       <ToastContainer />
     </div>
   );
