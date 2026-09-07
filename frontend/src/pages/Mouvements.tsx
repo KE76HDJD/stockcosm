@@ -5,6 +5,7 @@ import { produitsApi, stockApi } from '../api/produits';
 import { useLoading } from '../hooks/useLoading';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
+import { ProductSelect } from '../components/ProductSelect';
 import { formatDateTime, getTypeMouvementEmoji, getTypeMouvementColor } from '../api/utils';
 import type { Produit, Mouvement } from '../types';
 
@@ -60,12 +61,14 @@ export function MouvementsPage() {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
         <div className="flex-1 min-w-0 sm:min-w-[200px] sm:max-w-md">
           <label className="text-sm text-text-secondary dark:text-[#8B9199] mb-1 block">Produit</label>
-          <select value={selectedProduit} onChange={(e) => setSelectedProduit(e.target.value)} className="w-full px-3 py-2.5 sm:py-2 bg-white dark:bg-[#1C1F22] border border-border dark:border-white/[0.08] rounded-button text-sm dark:text-[#E4E6E9] dark:placeholder:text-[#8B9199]/50 dark:focus:border-[#3ECF8E]/40">
-            <option value="">Tous les produits</option>
-            {produits.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <ProductSelect
+            value={selectedProduit}
+            onChange={setSelectedProduit}
+            produits={produits}
+            placeholder="Tous les produits"
+            showAllOption
+            allOptionLabel="Tous les produits"
+          />
         </div>
         <div className="min-w-0 sm:min-w-[150px]">
           <label className="text-sm text-text-secondary dark:text-[#8B9199] mb-1 block">Type</label>

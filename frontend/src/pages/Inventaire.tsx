@@ -60,6 +60,12 @@ export function InventairePage() {
 
   const isToday = date === todayISO();
   const produitsConcernes = inventaire?.lignes.filter((l) => l.sorties > 0).length || 0;
+  const categoriesConcernees = inventaire
+    ? [...new Set(inventaire.lignes.filter((l) => l.sorties > 0).map((l) => l.categorie_nom))].length
+    : 0;
+  const topProduitSortie = inventaire?.lignes
+    .filter((l) => l.sorties > 0)
+    .sort((a, b) => b.sorties - a.sorties)[0] || null;
 
   const handleDownloadPdf = async () => {
     setDownloading(true);
@@ -97,39 +103,42 @@ export function InventairePage() {
 
       {/* Navigation jour par jour */}
       <div className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-3 sm:p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 sm:gap-3">
           <button
             onClick={goToPreviousDay}
-            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm text-text-secondary dark:text-[#8B9199] hover:text-text-primary dark:hover:text-[#E4E6E9] hover:bg-porcelaine dark:hover:bg-white/[0.05] rounded-button transition-colors"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-xs sm:text-sm text-text-secondary dark:text-[#8B9199] hover:text-text-primary dark:hover:text-[#E4E6E9] hover:bg-porcelaine dark:hover:bg-white/[0.05] rounded-button transition-colors shrink-0"
           >
             <ChevronLeft size={16} />
             <span className="hidden sm:inline">Jour précédent</span>
             <span className="sm:hidden">Préc.</span>
           </button>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
             <Calendar size={14} className="text-text-secondary dark:text-[#8B9199] shrink-0" />
             <div className="text-center min-w-0">
               <p className="font-heading font-600 text-fluid-sm sm:text-base truncate">{formatDisplayDate(date)}</p>
               {isToday && <p className="text-xs text-accent dark:text-[#3ECF8E] font-medium">Aujourd'hui</p>}
             </div>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className="px-2 sm:px-3 py-2 bg-porcelaine dark:bg-white/[0.05] border border-border dark:border-white/[0.08] rounded-button text-xs sm:text-sm shrink-0"
-            />
           </div>
 
           <button
             onClick={goToNextDay}
             disabled={isToday}
-            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm text-text-secondary dark:text-[#8B9199] hover:text-text-primary dark:hover:text-[#E4E6E9] hover:bg-porcelaine dark:hover:bg-white/[0.05] rounded-button transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-xs sm:text-sm text-text-secondary dark:text-[#8B9199] hover:text-text-primary dark:hover:text-[#E4E6E9] hover:bg-porcelaine dark:hover:bg-white/[0.05] rounded-button transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
           >
             <span className="hidden sm:inline">Jour suivant</span>
             <span className="sm:hidden">Suiv.</span>
             <ChevronRight size={16} />
           </button>
+        </div>
+
+        <div className="mt-2 pt-2 border-t border-border dark:border-white/[0.05] flex justify-center">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="px-3 py-1.5 bg-porcelaine dark:bg-white/[0.05] border border-border dark:border-white/[0.08] rounded-button text-xs sm:text-sm"
+          />
         </div>
       </div>
 
@@ -150,16 +159,26 @@ export function InventairePage() {
 
       {!error && inventaire && inventaire.lignes.length > 0 && (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-3 sm:p-5">
               <p className="text-xs text-text-secondary dark:text-[#8B9199] mb-1">Total sorties</p>
               <p className="font-heading font-700 text-fluid-xl sm:text-xl">{inventaire.total_sorties} sortie{inventaire.total_sorties > 1 ? 's' : ''}</p>
+              {topProduitSortie && (
+                <p className="text-xs text-text-secondary dark:text-[#8B9199] mt-1.5 truncate">
+                  Top: {topProduitSortie.produit_nom} ({topProduitSortie.sorties})
+                </p>
+              )}
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
               className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-3 sm:p-5">
               <p className="text-xs text-text-secondary dark:text-[#8B9199] mb-1">Produits concernés</p>
               <p className="font-heading font-700 text-fluid-xl sm:text-xl">{produitsConcernes} produit{produitsConcernes > 1 ? 's' : ''}</p>
+              {categoriesConcernees > 0 && (
+                <p className="text-xs text-text-secondary dark:text-[#8B9199] mt-1.5">
+                  {categoriesConcernees} catégorie{categoriesConcernees > 1 ? 's' : ''}
+                </p>
+              )}
             </motion.div>
           </div>
 
@@ -205,14 +224,23 @@ export function InventairePage() {
                 transition={{ delay: i * 0.03 }}
                 className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-3"
               >
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-1.5">
                   <span className="text-sm font-medium truncate pr-2">{l.produit_nom}</span>
-                  <span className="text-sm font-medium text-stock-rupture shrink-0">{l.sorties}</span>
+                  <span className="text-sm font-medium text-stock-rupture shrink-0">-{l.sorties}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-text-secondary dark:text-[#8B9199]">Stock restant</span>
-                  <span className="text-sm font-semibold">{formatQuantity(l.stock_cloture)}</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-text-secondary dark:text-[#8B9199]">{l.categorie_nom}</span>
+                  <span className="text-sm font-semibold">{formatQuantity(l.stock_cloture)} restant{l.stock_cloture > 1 ? 's' : ''}</span>
                 </div>
+                {l.stock_cloture <= l.alert_threshold && (
+                  <div className="mt-1.5">
+                    <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded-badge ${
+                      l.stock_cloture <= 0 ? 'bg-stock-rupture/10 text-stock-rupture' : 'bg-stock-faible/10 text-stock-faible'
+                    }`}>
+                      {l.stock_cloture <= 0 ? 'Rupture' : 'Stock faible'}
+                    </span>
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>

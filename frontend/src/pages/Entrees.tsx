@@ -7,6 +7,7 @@ import { useLoading } from '../hooks/useLoading';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { EmptyState } from '../components/EmptyState';
+import { ProductSelect } from '../components/ProductSelect';
 import { toast } from '../components/Toast';
 import { formatDateTime } from '../api/utils';
 import type { Produit, Mouvement } from '../types';
@@ -140,12 +141,12 @@ export function EntreesPage() {
         <div className="space-y-4">
           <div>
             <label className="text-sm text-text-secondary dark:text-[#8B9199] mb-1 block">Produit *</label>
-            <select value={form.produit_id} onChange={(e) => setForm({ ...form, produit_id: e.target.value })} className="w-full px-3 py-2.5 bg-porcelaine dark:bg-white/[0.05] border border-border dark:border-white/[0.08] rounded-button text-sm dark:text-[#E4E6E9] dark:placeholder:text-[#8B9199]/50 dark:focus:border-[#3ECF8E]/40">
-              <option value="">Sélectionner un produit...</option>
-              {produits.map((p) => (
-                <option key={p.id} value={p.id}>{p.name} (stock: {p.stock_quantity})</option>
-              ))}
-            </select>
+            <ProductSelect
+              value={form.produit_id}
+              onChange={(v) => setForm({ ...form, produit_id: v })}
+              produits={produits}
+              placeholder="Sélectionner un produit..."
+            />
           </div>
           <div>
             <label className="text-sm text-text-secondary dark:text-[#8B9199] mb-1 block">Quantité *</label>

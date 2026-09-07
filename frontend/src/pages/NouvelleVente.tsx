@@ -5,6 +5,7 @@ import { ShoppingCart, Minus, Plus, AlertCircle } from 'lucide-react';
 import { produitsApi, ventesApi } from '../api/produits';
 import { useLoading } from '../hooks/useLoading';
 import { Button } from '../components/Button';
+import { ProductSelect } from '../components/ProductSelect';
 import { toast } from '../components/Toast';
 import type { Produit } from '../types';
 
@@ -121,12 +122,12 @@ export function NouvelleVentePage() {
             <div className="flex flex-col sm:grid sm:grid-cols-12 gap-3">
               <div className="sm:col-span-7">
                 <label className="text-xs text-text-secondary dark:text-[#8B9199] mb-1 block">Produit</label>
-                <select value={ligne.produit_id} onChange={(e) => updateLine(i, 'produit_id', e.target.value)} className="w-full px-3 py-2.5 sm:py-2 bg-porcelaine dark:bg-white/[0.05] border border-border dark:border-white/[0.08] rounded-button text-sm dark:text-[#E4E6E9] dark:placeholder:text-[#8B9199]/50 dark:focus:border-[#3ECF8E]/40">
-                  <option value="">Choisir...</option>
-                  {produits.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name} (stock: {p.stock_quantity})</option>
-                  ))}
-                </select>
+                <ProductSelect
+                  value={ligne.produit_id}
+                  onChange={(v) => updateLine(i, 'produit_id', v)}
+                  produits={produits}
+                  placeholder="Choisir..."
+                />
               </div>
               <div className="sm:col-span-3">
                 <label className="text-xs text-text-secondary dark:text-[#8B9199] mb-1 block">Quantité</label>
