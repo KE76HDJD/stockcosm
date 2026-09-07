@@ -46,6 +46,10 @@ def get_settings() -> Settings:
     if "channel_binding=" in settings.DATABASE_URL:
         settings.DATABASE_URL = settings.DATABASE_URL.replace("&channel_binding=require", "").replace("?channel_binding=require", "")
 
+    if "sslmode=require" in settings.DATABASE_URL:
+        settings.DATABASE_URL = settings.DATABASE_URL.replace("?sslmode=require", "").replace("&sslmode=require", "")
+        settings.DATABASE_URL = settings.DATABASE_URL.rstrip("?&")
+
     if settings.ENVIRONMENT == "production":
         settings.COOKIE_SECURE = True
     return settings

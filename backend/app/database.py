@@ -1,14 +1,23 @@
+import ssl as _ssl
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from app.config import get_settings
 
 settings = get_settings()
 
+_connect_args = {}
+if "neon.tech" in settings.DATABASE_URL:
+    _ssl_ctx = _ssl.create_default_context()
+    _ssl_ctx.check_hostname = False
+    _ssl_ctx.verify_mode = _ssl.CERT_NONE
+    _connect_args["ssl"] = _ssl_ctx
+
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
     pool_size=5,
     max_overflow=10,
+    connect_args=_connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(
