@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     ALGORITHM: str = "HS256"
     GEMINI_API_KEY: str | None = None
+    MISTRAL_API_KEY: str | None = None
     TOTP_ISSUER: str = "KET SKIN CARE"
 
     DB_HOST: str = "localhost"

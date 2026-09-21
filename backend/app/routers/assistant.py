@@ -1,4 +1,6 @@
 import re
+import json as json_lib
+import logging
 from datetime import date, datetime
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Request
@@ -13,6 +15,12 @@ from app.services.alerte_service import AlerteService
 from app.services.inventaire_service import InventaireService
 from app.services.categorie_service import CategorieService
 from app.utils.rate_limiter import assistant_limiter
+from app.config import get_settings
+import httpx
+from rapidfuzz import fuzz, process
+from unidecode import unidecode
+
+logger = logging.getLogger("stockcosm.assistant")
 
 router = APIRouter(prefix="/api", tags=["Assistant IA"])
 
@@ -28,12 +36,26 @@ class AssistantResponse(BaseModel):
     suggestion: str | None = None
 
 
+TYPO_MAP = {
+    "sotck": "stock", "sotock": "stock", "stcok": "stock", "stok": "stock", "stoock": "stock",
+    "sock": "stock", "stcoke": "stock", "sotcke": "stock",
+    "qantite": "quantite", "quantitte": "quantite", "qunatite": "quantite", "quanite": "quantite",
+    "dispo": "disponible", "restte": "reste", "combient": "combien",
+}
+
+def _normalize_question(q: str) -> str:
+    q_low = unidecode(q.lower())
+    for typo, fix in TYPO_MAP.items():
+        q_low = re.sub(rf"\b{typo}\b", fix, q_low)
+    return q_low
+
 def detect_intent(question: str) -> tuple[str, dict]:
-    q = question.lower().strip()
+    q_raw = question.lower().strip()
+    q = _normalize_question(question)
     args = {}
 
     # Produit le plus / moins vendu
-    if re.search(r"(plus vendu|meilleur|top|best|se vend le plus|plus populaire|plus demandé)", q):
+    if re.search(r"(plus vendu|meilleur|top|best|se vend le plus|plus populaire|plus demande)", q):
         args["periode"] = "jour"
         if re.search(r"(mois|mensuel|month)", q):
             args["periode"] = "mois"
@@ -46,7 +68,7 @@ def detect_intent(question: str) -> tuple[str, dict]:
         return "bottom_produit", args
 
     # Alertes / rupture / stock faible
-    if re.search(r"(alerte|rupture|faible|risk|risque|probl[èe]me|manque)", q):
+    if re.search(r"(alerte|rupture|faible|risk|risque|probleme|manque)", q):
         return "alertes", {}
 
     # Ventes
@@ -56,9 +78,9 @@ def detect_intent(question: str) -> tuple[str, dict]:
         return "ventes_jour", {}
 
     # Stock par catégorie
-    if re.search(r"(cat[ée]gorie|categorie|catégorie|groupe|family)", q):
+    if re.search(r"(categorie|groupe|family)", q):
         cat_match = re.search(
-            r"(?:cat[ée]gorie|categorie|catégorie)\s+(?:de\s+|du\s+|des\s+|:)?\s*(.+)",
+            r"(?:categorie)\s+(?:de\s+|du\s+|des\s+|:)?\s*(.+)",
             q,
         )
         if cat_match:
@@ -66,7 +88,7 @@ def detect_intent(question: str) -> tuple[str, dict]:
         else:
             words = q.split()
             for i, w in enumerate(words):
-                if re.search(r"(cat[ée]gorie|categorie|catégorie)", w):
+                if "categorie" in w:
                     rest = " ".join(words[i + 1 :]).strip()
                     rest = re.sub(r"^(de\s+|du\s+|des\s+|:\s*)", "", rest)
                     if rest:
@@ -76,29 +98,51 @@ def detect_intent(question: str) -> tuple[str, dict]:
             return "stock_categorie", args
         return "list_categories", {}
 
-    # Recherche produit
-    if re.search(r"(cherche|recherche|find|trouve|search|est-ce qu.on a|on a)", q):
+    # Recherche produit - elargi pour "donne moi le produit X"
+    if re.search(r"(cherche|recherche|find|trouve|search|est-ce qu.on a|on a|donne.*produit|montre.*produit|affiche.*produit)", q):
         query_text = re.sub(
-            r"(?:cherche|recherche|find|trouve|search|est-ce qu.on a|on a)\s*",
+            r"(?:cherche|recherche|find|trouve|search|est-ce qu.on a|on a|donne.*produit|montre.*produit|affiche.*produit)\s*",
             "",
-            q,
+            q_raw.lower(),
             flags=re.IGNORECASE,
         ).strip()
+        # Si on a capturé via donne/produit, extraire le nom après produit
+        if not query_text or len(query_text) < 2:
+            m = re.search(r"produit\s+(.+)", q_raw, re.IGNORECASE)
+            if m:
+                query_text = m.group(1).strip()
         query_text = re.sub(r"^(le\s+|la\s+|les\s+|un\s+|une\s+|du\s+|de\s+|d'\s*)", "", query_text).strip()
-        if query_text:
+        # Nettoyer les mots parasites comme "donne moi", "stp", "svp"
+        query_text = re.sub(r"^(donne\s+moi\s+|donne\s+|stp\s+|svp\s+|le\s+stock\s+de\s+|son\s+stock\s*)", "", query_text, flags=re.IGNORECASE).strip()
+        query_text = re.sub(r"\s+(son\s+stock|sont\s+stock|stock.*)$", "", query_text, flags=re.IGNORECASE).strip()
+        if query_text and len(query_text) >= 2:
             args["query"] = query_text
+            # Si la question contient stock/quantite, c'est stock_produit plutot que recherche
+            if re.search(r"(stock|quantite|combien|reste|disponible)", q):
+                args["nom_produit"] = query_text
+                return "stock_produit", args
             return "recherche", args
-        return "search_help", {}
+        # fallback pour "donne moi le produit X stock"
+        if re.search(r"produit", q):
+            m = re.search(r"produit\s+([a-z0-9\s\-éèê]+)", q_raw, re.IGNORECASE)
+            if m:
+                name = m.group(1).strip()
+                name = re.sub(r"\s+(son|sont)\s+stock.*$", "", name, flags=re.IGNORECASE).strip()
+                if len(name) >= 2:
+                    args["nom_produit"] = name
+                    return "stock_produit", args
 
-    # Stock produit
-    if re.search(r"(stock|quantit[ée]|combien|reste|disponible|inventory)", q):
+    # Stock produit - avec typo tolerance deja normalise
+    if re.search(r"(stock|quantite|combien|reste|disponible|inventory)", q):
         name_match = re.search(
-            r"(?:stock|quantit[ée]|combien|reste|disponible|inventory)\s+(?:de\s+|du\s+|des\s+|pour\s+|sur\s+)?\s*(.+)",
-            q,
+            r"(?:stock|quantite|combien|reste|disponible|inventory)\s+(?:de\s+|du\s+|des\s+|pour\s+|sur\s+)?\s*(.+)",
+            q_raw.lower(),
         )
         if name_match:
             name = name_match.group(1).strip()
             name = re.sub(r"^(le\s+|la\s+|les\s+|un\s+|une\s+|'\s*)", "", name).strip()
+            # Nettoyer "sont stock" etc
+            name = re.sub(r"\s+(sont|son)\s+stock.*$", "", name, flags=re.IGNORECASE).strip()
             args["nom_produit"] = name
             return "stock_produit", args
         return "stock_help", {}
@@ -110,25 +154,108 @@ def detect_intent(question: str) -> tuple[str, dict]:
     return "unknown", {}
 
 
+async def detect_intent_mistral(question: str, produits: list[str], categories: list[str]) -> tuple[str, dict]:
+    settings = get_settings()
+    api_key = settings.MISTRAL_API_KEY
+    if not api_key:
+        return "unknown", {}
+    try:
+        prompt = f"""Tu es l'assistant de stock pour KET SKIN CARE BY MINA LA PREFEREE (cosmétiques).
+Produits: {', '.join(produits[:30])}
+Catégories: {', '.join(categories)}
+
+Intents possibles: stock_produit (besoin: nom_produit), recherche (besoin: query), stock_categorie (besoin: nom_categorie), list_categories, alertes, ventes_jour, ventes_mois, top_produit (periode jour/mois), bottom_produit, greeting.
+
+Question utilisateur: "{question}"
+
+Corrige les fautes (sotock->stock, beur→beurre). Si la question mentionne un produit même sans mot-clé stock (ex: "donne moi le produit X son stock", "produit beure"), choisis stock_produit.
+
+Réponds UNIQUEMENT en JSON: {{"intent": "...", "args": {{...}}}} sans texte autour."""
+        async with httpx.AsyncClient(timeout=8) as client:
+            resp = await client.post(
+                "https://api.mistral.ai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": "mistral-small-latest",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.1,
+                    "max_tokens": 150,
+                },
+            )
+            if resp.status_code != 200:
+                logger.warning(f"Mistral {resp.status_code}: {resp.text[:200]}")
+                return "unknown", {}
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"].strip()
+            # Extraire JSON
+            m = re.search(r"\{.*\}", content, re.DOTALL)
+            if not m:
+                return "unknown", {}
+            obj = json_lib.loads(m.group(0))
+            intent = obj.get("intent", "unknown")
+            args = obj.get("args", {})
+            # Normaliser periode
+            if intent in ("top_produit", "bottom_produit") and "periode" not in args:
+                args["periode"] = "jour"
+            return intent, args
+    except Exception as e:
+        logger.warning(f"Mistral fallback fail: {e}")
+        return "unknown", {}
+
+
+def fuzzy_find_produits(query: str, produits: list[Produit], limit: int = 5, cutoff: int = 60) -> list[Produit]:
+    if not query or not produits:
+        return []
+    q_norm = unidecode(query.lower())
+    scored = []
+    for p in produits:
+        name_norm = unidecode(p.name.lower())
+        # Score multi-métriques
+        score = max(
+            fuzz.ratio(q_norm, name_norm),
+            fuzz.partial_ratio(q_norm, name_norm),
+            fuzz.token_set_ratio(q_norm, name_norm),
+        )
+        if score >= cutoff:
+            scored.append((score, p))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [p for _, p in scored[:limit]]
+
+
 async def execute_intent(intent: str, args: dict, db: AsyncSession) -> dict:
     if intent == "stock_produit":
-        nom = args.get("nom_produit", "")
+        nom = args.get("nom_produit", "") or args.get("query", "")
+        # 1) ilike rapide
         result = await db.execute(
             select(Produit)
             .where(Produit.name.ilike(f"%{nom}%"), Produit.status == "ACTIVE")
             .limit(5)
         )
-        produits = result.scalars().all()
+        produits = list(result.scalars().all())
+        # 2) fuzzy si rien ou peu
+        if len(produits) == 0:
+            all_res = await db.execute(select(Produit).where(Produit.status == "ACTIVE"))
+            all_produits = list(all_res.scalars().all())
+            fuzzy = fuzzy_find_produits(nom, all_produits, limit=5, cutoff=60)
+            produits = fuzzy
+            if fuzzy:
+                # proposer correction
+                best = fuzzy[0].name
+                if unidecode(nom.lower()) != unidecode(best.lower()) and fuzz.ratio(unidecode(nom.lower()), unidecode(best.lower())) < 95:
+                    pass  # on garde le fuzzy
         if not produits:
             return {
-                "text": f"Produit \"{nom}\" non trouvé dans le catalogue.",
+                "text": f"Produit \"{nom}\" non trouvé. Vouliez-vous dire un de ces produits ? Essayez 'cherche {nom[:8]}' ou vérifiez l'orthographe.",
                 "suggestion": "/produits",
             }
         if len(produits) == 1:
             p = produits[0]
             stock = await StockService.get_stock_actuel(db, p.id)
+            prefix = ""
+            if unidecode(nom.lower()) not in unidecode(p.name.lower()) and fuzz.ratio(unidecode(nom.lower()), unidecode(p.name.lower())) < 90:
+                prefix = f"(Correction : \"{nom}\" → \"{p.name}\")\n"
             return {
-                "text": f"Stock de \"{p.name}\" : {stock} unités.",
+                "text": f"{prefix}Stock de \"{p.name}\" : {stock} unités.",
                 "data": {"produit_id": p.id, "stock": stock},
                 "suggestion": "/produits",
             }
@@ -258,12 +385,19 @@ async def execute_intent(intent: str, args: dict, db: AsyncSession) -> dict:
             .where(Produit.name.ilike(f"%{query}%"), Produit.status == "ACTIVE")
             .limit(10)
         )
-        produits = result.scalars().all()
+        produits = list(result.scalars().all())
         if not produits:
-            return {"text": f"Aucun produit trouvé pour \"{query}\".", "suggestion": "/produits"}
+            all_res = await db.execute(select(Produit).where(Produit.status == "ACTIVE"))
+            fuzzy = fuzzy_find_produits(query, list(all_res.scalars().all()), limit=10, cutoff=60)
+            produits = fuzzy
+        if not produits:
+            return {"text": f"Aucun produit trouvé pour \"{query}\". Essayez avec un autre mot-clé.", "suggestion": "/produits"}
         lines = [f"• {p.name} — Stock : {p.stock_quantity}" for p in produits]
+        prefix = ""
+        if produits and fuzz.ratio(unidecode(query.lower()), unidecode(produits[0].name.lower())) < 85:
+            prefix = f"(Résultats pour \"{query}\" → correction proche)\n"
         return {
-            "text": f"{len(produits)} résultat(s) pour \"{query}\" :\n" + "\n".join(lines),
+            "text": f"{prefix}{len(produits)} résultat(s) pour \"{query}\" :\n" + "\n".join(lines),
             "data": [{"id": p.id, "name": p.name} for p in produits],
             "suggestion": "/produits",
         }
@@ -303,6 +437,20 @@ async def query_assistant(
     assistant_limiter.check(req, identifier=f"assistant:{current_user.id}")
 
     intent, args = detect_intent(body.question)
+    # Regex + Mistral ensemble : si unknown ou stock_produit avec nom vide, on tente Mistral
+    if intent == "unknown" or (intent == "stock_produit" and not args.get("nom_produit")) or (intent in ("recherche","stock_produit") and len(args.get("nom_produit","") or args.get("query","")) < 2):
+        # Contexte produits/categories pour Mistral
+        try:
+            prod_res = await db.execute(select(Produit.name).where(Produit.status == "ACTIVE").limit(40))
+            prod_names = [r[0] for r in prod_res.all()]
+            cats = await CategorieService.list_all(db)
+            cat_names = [c["name"] for c in cats]
+            m_intent, m_args = await detect_intent_mistral(body.question, prod_names, cat_names)
+            if m_intent != "unknown":
+                intent, args = m_intent, m_args
+        except Exception as e:
+            logger.warning(f"Mistral intent fail: {e}")
+
     result = await execute_intent(intent, args, db)
 
     return AssistantResponse(
