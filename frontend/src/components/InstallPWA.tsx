@@ -69,16 +69,20 @@ export function InstallPWA() {
       >
         <div className="bg-white dark:bg-[#1E2023] rounded-2xl shadow-2xl border border-sage/20 dark:border-[#2E3136] p-4">
           <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-vert to-vert/80 flex items-center justify-center flex-shrink-0">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#E8751A' }}>
+              <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
+                <rect width="100" height="100" rx="22" fill="#E8751A"/>
+                <g transform="translate(50 32)">
+                  <polygon points="0,-18 18,0 0,18 -18,0" fill="white"/>
+                  <polygon points="0,-10 10,0 0,10 -10,0" fill="#E8751A"/>
+                  <circle r="2.5" fill="white"/>
+                </g>
+                <text x="50" y="68" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="16" letter-spacing="1.5" fill="white">M</text>
               </svg>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-ecritoire dark:text-[#E4E6E9]">
-                Installer StockCosM
+                Installer Mina la Préférée
               </p>
               <p className="text-xs text-warm-gray dark:text-[#8B9199] mt-0.5">
                 Accès rapide depuis l'écran d'accueil
@@ -88,7 +92,8 @@ export function InstallPWA() {
           <div className="flex gap-2 mt-3">
             <button
               onClick={handleInstall}
-              className="flex-1 px-4 py-2 bg-vert text-white text-sm font-medium rounded-xl hover:bg-vert/90 active:scale-[0.97] transition-all"
+              className="flex-1 px-4 py-2 text-white text-sm font-medium rounded-xl active:scale-[0.97] transition-all"
+              style={{ background: '#E8751A' }}
             >
               Installer
             </button>
