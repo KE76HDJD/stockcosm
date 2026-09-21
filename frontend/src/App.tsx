@@ -5,7 +5,6 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/Login';
-import { RegisterPage } from './pages/Register';
 import { DashboardPage } from './pages/Dashboard';
 import { ProduitsPage } from './pages/Produits';
 import { CategoriesPage } from './pages/Categories';
@@ -43,7 +42,6 @@ export default function App() {
         <BrowserRouter>
             <Routes>
               <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
               <Route
                 element={
                   <ProtectedRoute>

@@ -276,7 +276,7 @@ async def list_users(
 async def create_user(
     request: UserCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: Utilisateur = Depends(require_role("ADMIN", "ASSISTANT")),
+    current_user: Utilisateur = Depends(require_role("ADMIN")),
 ):
     user = await UserService.create(db, request.username, request.password, request.role)
     await db.commit()
@@ -317,6 +317,12 @@ class RegisterRequest(BaseModel):
 
 @router.post("/register")
 async def register_user(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import select, func
+    result = await db.execute(select(func.count()).select_from(Utilisateur))
+    count = result.scalar()
+    if count > 0:
+        raise HTTPException(status_code=403, detail="Inscription désactivée — contactez l'administrateur pour créer un compte.")
+
     if request.role not in ("ADMIN", "ASSISTANT"):
         raise HTTPException(status_code=400, detail="Rôle invalide")
     if len(request.username) < 2:
@@ -328,14 +334,7 @@ async def register_user(request: RegisterRequest, db: AsyncSession = Depends(get
     if existing:
         raise HTTPException(status_code=400, detail="Ce nom d'utilisateur existe déjà")
 
-    if request.role == "ADMIN":
-        from sqlalchemy import select, func
-        result = await db.execute(select(func.count()).select_from(Utilisateur))
-        count = result.scalar()
-        if count > 0:
-            raise HTTPException(status_code=400, detail="Un administrateur existe déjà. Seul un admin peut créer un autre admin.")
-
     user = await UserService.create(db, request.username, request.password, request.role)
     await db.commit()
-    log_user_management("USER_REGISTER", user.id, request.username, f"Auto-inscription role={request.role}")
+    log_user_management("USER_REGISTER", user.id, request.username, f"Premier compte role={request.role}")
     return {"message": "Compte créé avec succès", "username": user.username, "role": user.role}

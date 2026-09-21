@@ -217,6 +217,13 @@ async def create_entree(
 
     log_stock_change("STOCK_ENTRY", current_user.id, request.produit_id, f"qty={request.quantity}")
     return _mouvement_response(mouvement, prod_nom, current_user.username)
+
+
+@router.get("/entrees")
+async def list_entrees(
+    db: AsyncSession = Depends(get_db),
+    current_user: Utilisateur = Depends(get_current_user),
+):
     result = await db.execute(
         select(MouvementStock, Produit.name.label("produit_nom"), Utilisateur.username.label("user_nom"))
         .join(Produit, MouvementStock.produit_id == Produit.id)
@@ -226,8 +233,34 @@ async def create_entree(
         .limit(100)
     )
     rows = result.all()
-
     return [_mouvement_response(m, pnom, unom) for m, pnom, unom in rows]
+
+
+@router.post("/mouvements/{mouvement_id}/annuler")
+async def annuler_mouvement(
+    mouvement_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Utilisateur = Depends(get_current_user),
+):
+    result = await db.execute(select(MouvementStock).where(MouvementStock.id == mouvement_id))
+    mouv = result.scalar_one_or_none()
+    if mouv is None:
+        raise HTTPException(status_code=404, detail="Mouvement introuvable")
+    if mouv.type not in ("IN", "AUTRE_SORTIE", "AJUSTEMENT"):
+        raise HTTPException(status_code=400, detail="Ce type de mouvement ne peut pas être annulé (ventes : utilisez Annuler la vente)")
+    # Créer le mouvement inverse
+    if mouv.type == "IN":
+        inverse = await StockService.sortir_stock(db, mouv.produit_id, mouv.quantity, current_user.id, raison=f"Correction entrée {mouv.id[:8]}")
+    elif mouv.type == "AUTRE_SORTIE":
+        inverse = await StockService.entrer_stock(db, mouv.produit_id, mouv.quantity, current_user.id)
+    else:  # AJUSTEMENT
+        # Annuler un ajustement = restaurer l'ancien stock (stock_before)
+        inverse = await StockService.ajuster_stock(db, mouv.produit_id, mouv.stock_before, current_user.id, raison=f"Annulation ajustement {mouv.id[:8]}")
+    await db.commit()
+    prod_result = await db.execute(select(Produit.name).where(Produit.id == inverse.produit_id))
+    prod_nom = prod_result.scalar()
+    log_stock_change("STOCK_CANCEL", current_user.id, inverse.produit_id, f"annule {mouv.id[:8]} type={mouv.type}")
+    return _mouvement_response(inverse, prod_nom, current_user.username)
 
 
 # ─── SORTIES DE STOCK ──────────────────────────────────

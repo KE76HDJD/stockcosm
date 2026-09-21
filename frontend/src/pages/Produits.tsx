@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Plus } from 'lucide-react';
+import { Search, Eye, Plus, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { produitsApi, categoriesApi } from '../api/produits';
 import { useLoading } from '../hooks/useLoading';
 import { StockBadge } from '../components/Badge';
@@ -14,6 +15,7 @@ import type { Produit, ProduitStock, Mouvement, PaginatedMouvements } from '../t
 
 export function ProduitsPage() {
   const { isLoading, withLoading } = useLoading(true);
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [produits, setProduits] = useState<Produit[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -30,6 +32,9 @@ export function ProduitsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({ name: '', categorie_id: '', alert_threshold: 10 });
   const [creating, setCreating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const loadProduits = () => withLoading(async () => {
     const [p, c] = await Promise.all([
@@ -113,6 +118,24 @@ export function ProduitsPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!detailProduit) return;
+    if (deleteConfirmText !== 'SUPPRIMER') { toast.error('Tapez SUPPRIMER pour confirmer'); return; }
+    setDeleting(true);
+    try {
+      await produitsApi.delete(detailProduit.id);
+      toast.success(`${detailProduit.name} supprimé`);
+      setProduits(produits.filter((p) => p.id !== detailProduit.id));
+      setDetailProduit(null);
+      setShowDeleteConfirm(false);
+      setDeleteConfirmText('');
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Suppression impossible');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filtered = selectedCat
     ? produits.filter((p) => p.categorie_id === selectedCat && p.status === 'ACTIVE')
     : produits.filter((p) => p.status === 'ACTIVE');
@@ -144,16 +167,30 @@ export function ProduitsPage() {
             className="w-full pl-10 pr-4 py-2.5 sm:py-2 bg-white dark:bg-[#1C1F22] border border-border dark:border-white/[0.08] rounded-button text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 dark:focus:border-[#3ECF8E]/40 dark:text-[#E4E6E9] dark:placeholder:text-[#8B9199]/50"
           />
         </div>
-        <select
-          value={selectedCat}
-          onChange={(e) => setSelectedCat(e.target.value)}
-          className="px-3 py-2.5 sm:py-2 bg-white dark:bg-[#1C1F22] border border-border dark:border-white/[0.08] rounded-button text-sm dark:text-[#E4E6E9]"
+        <button
+          onClick={() => navigate('/categories')}
+          className="px-4 py-2.5 sm:py-2 bg-white dark:bg-[#1C1F22] border border-border dark:border-white/[0.08] rounded-button text-sm dark:text-[#E4E6E9] hover:bg-porcelaine dark:hover:bg-white/[0.05] transition-colors whitespace-nowrap"
         >
-          <option value="">Toutes les catégories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+          Voir les catégories
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setSelectedCat('')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${selectedCat === '' ? 'bg-[#E8751A] text-white border-[#E8751A]' : 'bg-white dark:bg-[#1C1F22] border-border dark:border-white/[0.08] text-text-secondary dark:text-[#8B9199] hover:border-[#E8751A]/30'}`}
+        >
+          Toutes
+        </button>
+        {categories.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setSelectedCat(selectedCat === c.id ? '' : c.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${selectedCat === c.id ? 'bg-[#E8751A] text-white border-[#E8751A]' : 'bg-white dark:bg-[#1C1F22] border-border dark:border-white/[0.08] text-text-secondary dark:text-[#8B9199] hover:border-[#E8751A]/30'}`}
+          >
+            {c.name}
+          </button>
+        ))}
       </div>
 
       {/* Desktop table */}
@@ -239,8 +276,8 @@ export function ProduitsPage() {
         <EmptyState icon={Search} title="Aucun produit trouvé" description="Modifiez votre recherche ou filtre." />
       )}
 
-      <Modal isOpen={!!detailProduit} onClose={() => { setDetailProduit(null); setStockInfo(null); setMouvements([]); }} title={detailProduit?.name || ''} maxWidth="max-w-2xl">
-        {detailProduit && (
+      <Modal isOpen={!!detailProduit && !showDeleteConfirm} onClose={() => { setDetailProduit(null); setStockInfo(null); setMouvements([]); }} title={detailProduit?.name || ''} maxWidth="max-w-2xl">
+        {detailProduit && !showDeleteConfirm && (
           <div className="space-y-4 sm:space-y-6">
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="bg-porcelaine dark:bg-white/[0.05] rounded-button p-3 sm:p-4">
@@ -259,6 +296,13 @@ export function ProduitsPage() {
                 <p className="text-xs text-text-secondary dark:text-[#8B9199] mb-1">Statut</p>
                 <StockBadge variant={stockInfo?.statut || 'normal'} size="md" />
               </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => setShowDeleteConfirm(true)} className="text-stock-rupture hover:bg-red-50 dark:hover:bg-red-500/10">
+                <Trash2 size={16} />
+                Supprimer le produit
+              </Button>
             </div>
 
             <div>
@@ -307,6 +351,30 @@ export function ProduitsPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }} title="Supprimer le produit ?">
+        <div className="space-y-4">
+          <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-button p-3">
+            <p className="text-sm text-stock-rupture">
+              Cette action est <strong>irréversible</strong>. Le produit <strong>{detailProduit?.name}</strong> sera définitivement supprimé. Si le produit a des ventes ou mouvements, la suppression sera refusée — archivez-le à la place.
+            </p>
+          </div>
+          <div>
+            <label className="text-sm text-text-secondary dark:text-[#8B9199] mb-1 block">Tapez <span className="font-mono font-bold text-stock-rupture">SUPPRIMER</span> pour confirmer</label>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="SUPPRIMER"
+              className="w-full px-3 py-2.5 bg-white dark:bg-white/[0.05] border border-border dark:border-white/[0.08] rounded-button text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20"
+            />
+          </div>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }} className="w-full sm:w-auto">Annuler</Button>
+            <Button onClick={handleDelete} loading={deleting} disabled={deleteConfirmText !== 'SUPPRIMER'} className="w-full sm:w-auto bg-stock-rupture hover:bg-red-600 text-white disabled:opacity-40">Confirmer la suppression</Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Nouveau produit">

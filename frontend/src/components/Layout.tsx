@@ -4,6 +4,7 @@ import { ToastContainer } from './Toast';
 import { AssistantFab } from './AssistantFab';
 import { AssistantPanel } from './AssistantPanel';
 import { InstallPWA } from './InstallPWA';
+import { KeepAlive } from './KeepAlive';
 import { Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -37,6 +38,7 @@ export function Layout() {
         onMinimize={() => setAssistantOpen(false)}
       />
 
+      <KeepAlive />
       <InstallPWA />
       <ToastContainer />
     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../hooks/useAuth';
 import { motion } from 'framer-motion';
 import { Lock, User, AlertCircle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
@@ -259,11 +259,9 @@ export function LoginPage() {
           )}
         </div>
 
-        <div className="mt-4 text-center">
-          <Link to="/register" className="text-sm text-accent dark:text-[#3ECF8E] hover:underline">
-            Pas de compte ? Créer un compte
-          </Link>
-        </div>
+        <p className="mt-4 text-center text-xs text-text-secondary dark:text-[#8B9199]">
+          Compte géré par l'administrateur — contactez Mina la Préférée
+        </p>
       </motion.div>
     </div>
   );

@@ -26,6 +26,10 @@ export const produitsApi = {
     await api.patch(`/produits/${id}/archive`);
   },
 
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/produits/${id}`);
+  },
+
   getMouvements: async (id: string, page?: number, limit?: number): Promise<PaginatedMouvements> => {
     const params: Record<string, any> = {};
     if (page) params.page = page;
@@ -105,6 +109,11 @@ export const stockApi = {
     limit?: number;
   }) => {
     const { data } = await api.get('/mouvements', { params: params || {} });
+    return data;
+  },
+
+  annulerMouvement: async (id: string) => {
+    const { data } = await api.post(`/mouvements/${id}/annuler`);
     return data;
   },
 };

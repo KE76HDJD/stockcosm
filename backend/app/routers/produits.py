@@ -222,6 +222,43 @@ async def archive_produit(
     return {"message": "Produit archivé avec succès"}
 
 
+@router.delete("/produits/{produit_id}")
+async def delete_produit(
+    produit_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Utilisateur = Depends(require_role("ADMIN")),
+):
+    from app.models.mouvement import MouvementStock
+    from app.models.vente import VenteLigne
+
+    result = await db.execute(select(Produit).where(Produit.id == produit_id))
+    produit = result.scalar_one_or_none()
+    if produit is None:
+        raise HTTPException(status_code=404, detail="Produit introuvable")
+
+    vente_count = await db.execute(
+        select(func.count(VenteLigne.id)).where(VenteLigne.produit_id == produit_id)
+    )
+    if vente_count.scalar() and vente_count.scalar() > 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Impossible de supprimer : ce produit a des ventes associées. Archivez-le à la place.",
+        )
+
+    mouv_count = await db.execute(
+        select(func.count(MouvementStock.id)).where(MouvementStock.produit_id == produit_id)
+    )
+    if mouv_count.scalar() and mouv_count.scalar() > 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Impossible de supprimer : ce produit a des mouvements de stock. Archivez-le à la place.",
+        )
+
+    await db.delete(produit)
+    await db.commit()
+    return {"message": "Produit supprimé avec succès"}
+
+
 # Route catch-all /{produit_id} en DERNIER
 @router.get("/produits/{produit_id}", response_model=ProduitResponse)
 async def get_produit(
