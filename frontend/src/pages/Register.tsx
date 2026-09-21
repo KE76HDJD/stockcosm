@@ -13,6 +13,7 @@ export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('ASSISTANT');
   const [adminExists, setAdminExists] = useState(true);
+  const [checkingSetup, setCheckingSetup] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
@@ -21,9 +22,10 @@ export function RegisterPage() {
 
   useEffect(() => {
     authApi.setupStatus().then((res) => {
-      setAdminExists(!res.needs_setup);
-      if (res.needs_setup) setRole('ADMIN');
-    }).catch(() => {});
+      const exists = !res.needs_setup;
+      setAdminExists(exists);
+      if (!exists) setRole('ADMIN');
+    }).catch(() => {}).finally(() => setCheckingSetup(false));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,6 +54,38 @@ export function RegisterPage() {
     }
   };
 
+  if (checkingSetup) {
+    return (
+      <div className="min-h-screen bg-porcelaine flex items-center justify-center p-4">
+        <div className="w-8 h-8 rounded-full border-4 border-[#E8751A]/20 border-t-[#E8751A] animate-spin" />
+      </div>
+    );
+  }
+
+  if (adminExists) {
+    return (
+      <div className="min-h-screen bg-porcelaine flex items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
+          <div className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-[#E8751A]/10 flex items-center justify-center mx-auto mb-4">
+              <UserPlus size={28} className="text-[#E8751A]" />
+            </div>
+            <h1 className="font-heading font-700 text-xl text-text-primary dark:text-[#E4E6E9]">Inscriptions fermées</h1>
+            <p className="text-sm text-text-secondary dark:text-[#8B9199] mt-3 leading-relaxed">
+              Cette application est <strong className="text-text-primary dark:text-[#E4E6E9]">privée et réservée à la boutique Mina la Préférée</strong>.<br />
+              Seul l'administrateur peut créer un compte pour son équipe.<br />
+              Veuillez contacter votre administrateur pour obtenir vos accès.
+            </p>
+            <div className="mt-6 flex flex-col gap-2">
+              <Button onClick={() => navigate('/login')} className="w-full">Aller à la connexion</Button>
+              <p className="text-xs text-text-secondary dark:text-[#8B9199] mt-2">Vous êtes administrateur ? Connectez-vous puis créez les comptes depuis <strong>Utilisateurs</strong>.</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-porcelaine flex items-center justify-center p-4">
       <motion.div
@@ -62,14 +96,14 @@ export function RegisterPage() {
       >
         <div className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-8">
           <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-full bg-accent/10 dark:bg-[#3ECF8E]/10 flex items-center justify-center mx-auto mb-4">
-              <UserPlus size={28} className="text-accent dark:text-[#3ECF8E]" />
+            <div className="w-14 h-14 rounded-full bg-[#E8751A]/10 flex items-center justify-center mx-auto mb-4">
+              <UserPlus size={28} className="text-[#E8751A]" />
             </div>
             <h1 className="font-heading font-700 text-xl text-text-primary dark:text-[#E4E6E9]">
-              Créer mon compte
+              Créer le compte administrateur
             </h1>
             <p className="text-text-secondary dark:text-[#8B9199] text-sm mt-2">
-              Inscrivez-vous pour accéder à l'application
+              Première installation — créez le compte qui gèrera la boutique
             </p>
           </div>
 
@@ -154,37 +188,8 @@ export function RegisterPage() {
                 />
               </div>
 
-              <div>
-                <label className="text-sm text-text-secondary dark:text-[#8B9199] mb-2 block">Rôle *</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setRole('ADMIN')}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-button border text-sm font-medium transition-all ${
-                      role === 'ADMIN'
-                        ? 'border-accent dark:border-[#3ECF8E] bg-accent/5 dark:bg-[#3ECF8E]/10 text-accent dark:text-[#3ECF8E]'
-                        : 'border-border dark:border-white/[0.08] text-text-secondary dark:text-[#8B9199] hover:border-accent/30 dark:hover:border-[#3ECF8E]/30'
-                    }`}
-                  >
-                    <Shield size={16} />
-                    Administrateur
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole('ASSISTANT')}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-button border text-sm font-medium transition-all ${
-                      role === 'ASSISTANT'
-                        ? 'border-accent dark:border-[#3ECF8E] bg-accent/5 dark:bg-[#3ECF8E]/10 text-accent dark:text-[#3ECF8E]'
-                        : 'border-border dark:border-white/[0.08] text-text-secondary dark:text-[#8B9199] hover:border-accent/30 dark:hover:border-[#3ECF8E]/30'
-                    }`}
-                  >
-                    <UserCheck size={16} />
-                    Assistant
-                  </button>
-                </div>
-                <p className="text-xs text-text-secondary dark:text-[#8B9199] mt-2">
-                  {role === 'ADMIN' ? 'Vous pourrez gérer les utilisateurs et les paramètres' : 'Vous pourrez gérer les stocks et les ventes'}
-                </p>
+              <div className="bg-[#E8751A]/5 border border-[#E8751A]/20 rounded-button p-3">
+                <p className="text-xs text-[#E8751A] flex items-center gap-2"><Shield size={14} /> Compte administrateur — accès complet à la gestion de la boutique</p>
               </div>
 
               <Button type="submit" loading={loading} className="w-full" size="lg">

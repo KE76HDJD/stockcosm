@@ -321,7 +321,7 @@ async def register_user(request: RegisterRequest, db: AsyncSession = Depends(get
     result = await db.execute(select(func.count()).select_from(Utilisateur))
     count = result.scalar()
     if count > 0:
-        raise HTTPException(status_code=403, detail="Inscription désactivée — contactez l'administrateur pour créer un compte.")
+        raise HTTPException(status_code=403, detail="Inscriptions fermées — cette application est privée et réservée à la boutique Mina la Préférée. Seul l'administrateur peut créer les comptes. Veuillez le contacter pour obtenir vos accès.")
 
     if request.role not in ("ADMIN", "ASSISTANT"):
         raise HTTPException(status_code=400, detail="Rôle invalide")

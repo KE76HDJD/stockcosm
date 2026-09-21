@@ -107,6 +107,21 @@ export function LoginPage() {
     }
   }, [twoFactorRequired]);
 
+  const getFrenchError = (err: any, fallback: string) => {
+    if (!err.response) {
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') return 'Impossible de joindre le serveur — vérifiez votre connexion internet et réessayez.';
+      if (err.message?.includes('timeout')) return 'Le serveur met trop de temps à répondre — réessayez dans quelques secondes.';
+      return 'Problème de connexion — vérifiez votre réseau et réessayez.';
+    }
+    const status = err.response.status;
+    const detail = err.response.data?.detail;
+    if (detail) return detail;
+    if (status === 502 || status === 503 || status === 504) return 'Le serveur se réveille — patientez quelques secondes et réessayez.';
+    if (status === 500) return 'Une erreur est survenue côté serveur — réessayez ou contactez l\'administrateur.';
+    if (status === 429) return 'Trop de tentatives — patientez quelques minutes avant de réessayer.';
+    return fallback;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
@@ -121,7 +136,7 @@ export function LoginPage() {
         navigate('/');
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Identifiants incorrects');
+      setError(getFrenchError(err, 'Identifiants incorrects — vérifiez votre nom d\'utilisateur et mot de passe.'));
     } finally {
       setLoading(false);
     }
@@ -139,7 +154,7 @@ export function LoginPage() {
       await login2fa(code2fa);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Code incorrect');
+      setError(getFrenchError(err, 'Code incorrect — vérifiez et réessayez.'));
     } finally {
       setLoading(false);
     }
