@@ -248,14 +248,15 @@ async def annuler_mouvement(
         raise HTTPException(status_code=404, detail="Mouvement introuvable")
     if mouv.type not in ("IN", "AUTRE_SORTIE", "AJUSTEMENT"):
         raise HTTPException(status_code=400, detail="Ce type de mouvement ne peut pas être annulé (ventes : utilisez Annuler la vente)")
-    # Créer le mouvement inverse
-    if mouv.type == "IN":
-        inverse = await StockService.sortir_stock(db, mouv.produit_id, mouv.quantity, current_user.id, raison=f"Correction entrée {mouv.id[:8]}")
-    elif mouv.type == "AUTRE_SORTIE":
-        inverse = await StockService.entrer_stock(db, mouv.produit_id, mouv.quantity, current_user.id)
-    else:  # AJUSTEMENT
-        # Annuler un ajustement = restaurer l'ancien stock (stock_before)
-        inverse = await StockService.ajuster_stock(db, mouv.produit_id, mouv.stock_before, current_user.id, raison=f"Annulation ajustement {mouv.id[:8]}")
+    try:
+        if mouv.type == "IN":
+            inverse = await StockService.sortir_stock(db, mouv.produit_id, mouv.quantity, current_user.id, raison=f"Correction entrée {mouv.id[:8]}")
+        elif mouv.type == "AUTRE_SORTIE":
+            inverse = await StockService.entrer_stock(db, mouv.produit_id, mouv.quantity, current_user.id)
+        else:  # AJUSTEMENT
+            inverse = await StockService.ajuster_stock(db, mouv.produit_id, mouv.stock_before, current_user.id, raison=f"Annulation ajustement {mouv.id[:8]}")
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     await db.commit()
     prod_result = await db.execute(select(Produit.name).where(Produit.id == inverse.produit_id))
     prod_nom = prod_result.scalar()
