@@ -16,23 +16,16 @@ jobs:
           curl https://rclone.org/install.sh | sudo bash
           rclone version
 
-      - name: Configurer rclone Drive
+      - name: Configurer rclone Drive (OAuth perso)
         env:
-          RCLONE_SA_JSON: ${{ secrets.RCLONE_SA_JSON }}
+          RCLONE_OAUTH_TOKEN: ${{ secrets.RCLONE_OAUTH_TOKEN }}
         run: |
           mkdir -p ~/.config/rclone
-          cat > ~/.config/rclone/rclone.conf <<EOF
-          [gdrive]
-          type = drive
-          scope = drive
-          service_account_file = /tmp/sa.json
-          EOF
-          echo "$RCLONE_SA_JSON" > /tmp/sa.json
-          chmod 600 /tmp/sa.json
-          # Vérifie que le dossier partagé est accessible
+          printf '[gdrive]\ntype = drive\nscope = drive\ntoken = %s\n' "$RCLONE_OAUTH_TOKEN" > ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf
           rclone lsd gdrive: --drive-shared-with-me 2>&1 | head -20 || true
           rclone mkdir gdrive:StockCosM/backups 2>&1 | head -5 || true
-          echo "rclone config OK"
+          echo "rclone OAuth OK"
 
       - name: Sauvegarde Neon chiffrée
         env:
@@ -53,7 +46,7 @@ jobs:
           gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "$ENC" "$DUMP"
           ls -lh "$ENC"
           echo "Upload Drive → gdrive:StockCosM/backups/"
-          rclone copy "$ENC" gdrive:StockCosM/backups/ --drive-shared-with-me -v 2>&1 | tail -20
+          rclone copy "$ENC" gdrive:StockCosM/backups/ -v 2>&1 | tail -20
           # Garde 7 quotidiens + 1 mensuel : supprime >30j
           rclone lsf gdrive:StockCosM/backups/ | head -20 || true
           echo "Upload OK"
