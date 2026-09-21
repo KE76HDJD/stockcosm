@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { authApi } from '../api/auth';
 import { useAuthStore } from '../hooks/useAuth';
 import { motion } from 'framer-motion';
 import { Lock, User, AlertCircle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
@@ -88,10 +89,15 @@ export function LoginPage() {
   const [show2fa, setShow2fa] = useState(false);
   const [code2fa, setCode2fa] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
   const login = useAuthStore((s) => s.login);
   const login2fa = useAuthStore((s) => s.login2fa);
   const twoFactorRequired = useAuthStore((s) => s.twoFactorRequired);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    authApi.setupStatus().then((r) => setNeedsSetup(r.needs_setup)).catch(() => setNeedsSetup(false));
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -274,9 +280,18 @@ export function LoginPage() {
           )}
         </div>
 
-        <p className="mt-4 text-center text-xs text-text-secondary dark:text-[#8B9199]">
-          Compte géré par l'administrateur — contactez Mina la Préférée
-        </p>
+        {needsSetup ? (
+          <div className="mt-4 text-center">
+            <Link to="/register" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-button bg-[#E8751A] text-white text-sm font-medium hover:bg-[#D16615] transition-colors">
+              Créer le compte administrateur →
+            </Link>
+            <p className="text-xs text-text-secondary dark:text-[#8B9199] mt-2">Première installation — créez le compte qui gèrera la boutique</p>
+          </div>
+        ) : (
+          <p className="mt-4 text-center text-xs text-text-secondary dark:text-[#8B9199]">
+            Compte géré par l'administrateur — contactez Mina la Préférée
+          </p>
+        )}
       </motion.div>
     </div>
   );
