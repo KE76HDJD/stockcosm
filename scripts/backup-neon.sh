@@ -21,11 +21,13 @@ fi
 BACKUP_DIR="/home/kevin/Gestion_stock/backups"
 TIMESTAMP=$(date +%Y-%m-%d_%H-%M)
 BACKUP_FILE="$BACKUP_DIR/stockcosm-$TIMESTAMP.sql"
+DUMP_CUSTOM="$BACKUP_DIR/stockcosm-$TIMESTAMP.dump"
 
 mkdir -p "$BACKUP_DIR"
 
-echo "Backup Neon DB → $BACKUP_FILE"
+echo "Backup Neon DB → $BACKUP_FILE (plain) + $DUMP_CUSTOM (custom)"
 
+# Plain SQL (lisible)
 docker run --rm -e PGPASSWORD="$NEON_PASSWORD" postgres:18 pg_dump \
   -h ep-billowing-star-aycvpit0-pooler.c-5.us-east-2.aws.neon.tech \
   -p 5432 \
@@ -37,5 +39,15 @@ docker run --rm -e PGPASSWORD="$NEON_PASSWORD" postgres:18 pg_dump \
   --no-comments \
   > "$BACKUP_FILE"
 
+# Custom compressé (pour Drive chiffré)
+docker run --rm -e PGPASSWORD="$NEON_PASSWORD" postgres:18 pg_dump \
+  -h ep-billowing-star-aycvpit0-pooler.c-5.us-east-2.aws.neon.tech \
+  -p 5432 \
+  -U neondb_owner \
+  -d neondb \
+  -Fc -Z9 --no-owner --no-privileges \
+  > "$DUMP_CUSTOM"
+
 SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
-echo "OK — $SIZE — $(wc -l < "$BACKUP_FILE") lignes"
+SIZE2=$(du -h "$DUMP_CUSTOM" | cut -f1)
+echo "OK — plain $SIZE — $(wc -l < "$BACKUP_FILE") lignes — custom $SIZE2"

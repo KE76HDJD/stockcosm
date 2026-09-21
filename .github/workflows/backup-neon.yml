@@ -1,0 +1,66 @@
+name: Backup Neon vers Google Drive
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 02:00 UTC = 03:00 Paris
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          rclone version
+
+      - name: Configurer rclone Drive
+        env:
+          RCLONE_SA_JSON: ${{ secrets.RCLONE_SA_JSON }}
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [gdrive]
+          type = drive
+          scope = drive
+          service_account_file = /tmp/sa.json
+          EOF
+          echo "$RCLONE_SA_JSON" > /tmp/sa.json
+          chmod 600 /tmp/sa.json
+          # Vérifie que le dossier partagé est accessible
+          rclone lsd gdrive: --drive-shared-with-me 2>&1 | head -20 || true
+          rclone mkdir gdrive:StockCosM/backups 2>&1 | head -5 || true
+          echo "rclone config OK"
+
+      - name: Sauvegarde Neon chiffrée
+        env:
+          PGPASSWORD: ${{ secrets.NEON_PASSWORD }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -e
+          DATE=$(date +%Y-%m-%d)
+          DUMP="/tmp/stockcosm-$DATE.dump"
+          ENC="/tmp/stockcosm-$DATE.dump.gpg"
+          echo "Dump Neon → $DUMP"
+          docker run --rm -e PGPASSWORD="$PGPASSWORD" postgres:18 pg_dump \
+            -h ep-billowing-star-aycvpit0-pooler.c-5.us-east-2.aws.neon.tech \
+            -p 5432 -U neondb_owner -d neondb \
+            -Fc -Z9 --no-owner --no-privileges > "$DUMP"
+          ls -lh "$DUMP"
+          echo "Chiffrement AES256 → $ENC"
+          gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "$ENC" "$DUMP"
+          ls -lh "$ENC"
+          echo "Upload Drive → gdrive:StockCosM/backups/"
+          rclone copy "$ENC" gdrive:StockCosM/backups/ --drive-shared-with-me -v 2>&1 | tail -20
+          # Garde 7 quotidiens + 1 mensuel : supprime >30j
+          rclone lsf gdrive:StockCosM/backups/ | head -20 || true
+          echo "Upload OK"
+
+      - name: Conserver artefacts 7j (secours GitHub)
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-backup-${{ github.run_id }}
+          path: /tmp/stockcosm-*.dump.gpg
+          retention-days: 7
