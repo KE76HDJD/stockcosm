@@ -304,7 +304,7 @@ async def update_user(
 @router.get("/setup-status")
 async def setup_status(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import select, func
-    # 'admin' test caché ne compte pas — permet à la boutique de voir "Créer compte admin"
+    # 'admin' test caché ne bloque pas la création du vrai admin
     result = await db.execute(select(func.count()).select_from(Utilisateur).where(Utilisateur.username != 'admin'))
     count = result.scalar()
     return {"needs_setup": count == 0}
@@ -319,11 +319,13 @@ class RegisterRequest(BaseModel):
 @router.post("/register")
 async def register_user(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import select, func
-    # 'admin' test caché ne bloque pas la création du vrai admin
     result = await db.execute(select(func.count()).select_from(Utilisateur).where(Utilisateur.username != 'admin'))
     count = result.scalar()
     if count > 0:
         raise HTTPException(status_code=403, detail="Inscriptions fermées — cette application est privée et réservée à la boutique Mina la Préférée. Seul l'administrateur peut créer les comptes. Veuillez le contacter pour obtenir vos accès.")
+    # Premier vrai compte doit être ADMIN
+    if request.role != "ADMIN":
+        raise HTTPException(status_code=400, detail="Le premier compte doit être administrateur.")
 
     if request.role not in ("ADMIN", "ASSISTANT"):
         raise HTTPException(status_code=400, detail="Rôle invalide")
