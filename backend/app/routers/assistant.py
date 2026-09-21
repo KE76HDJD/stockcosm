@@ -145,13 +145,20 @@ def detect_intent(question: str) -> tuple[str, dict]:
             if len(name) >= 2:
                 args["nom_produit"] = name
                 return "stock_produit", args
-        # Cas "produit X son stock" / "X sont sotock" -> extraire avant son/sont stock
+        # Cas "produit X son stock" / "X sont sotock" / "X stock" -> extraire avant
         m2 = re.search(r"(.+?)\s+(?:son|sont)\s+stock", q)
         if m2:
             name = m2.group(1).strip()
-            # nettoyer "donne moi le", "produit"
             name = re.sub(r"^(donne\s+moi\s+|donne\s+|le\s+|la\s+|les\s+|produit\s+|du\s+|de\s+)+", "", name).strip()
             if len(name) >= 2:
+                args["nom_produit"] = name
+                return "stock_produit", args
+        # Cas "beure sotock" / "beurre eclair stock" (produit avant stock)
+        m3 = re.search(r"(.+?)\s+stock$", q.strip())
+        if m3:
+            name = m3.group(1).strip()
+            name = re.sub(r"^(donne\s+moi\s+|donne\s+|le\s+|la\s+|les\s+|produit\s+|du\s+|de\s+)+", "", name).strip()
+            if len(name) >= 2 and len(name.split()) <= 6:
                 args["nom_produit"] = name
                 return "stock_produit", args
         return "stock_help", {}
