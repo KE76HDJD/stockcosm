@@ -19,6 +19,7 @@ import {
   Download,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { BrandMark } from './BrandMark';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Tableau de bord', roles: ['ADMIN', 'ASSISTANT'] },
@@ -151,8 +152,11 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
 
   return (
     <>
-      <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-border dark:border-white/[0.08]">
-        <AnimatedStoreName />
+      <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-border dark:border-white/[0.08] flex items-center gap-3">
+        <BrandMark size={40} />
+        <div className="flex-1 min-w-0">
+          <AnimatedStoreName />
+        </div>
       </div>
 
       <nav className="flex-1 py-3 sm:py-4 px-2 sm:px-3 space-y-0.5 overflow-y-auto">

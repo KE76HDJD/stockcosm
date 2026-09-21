@@ -5,6 +5,7 @@ import { useAuthStore } from '../hooks/useAuth';
 import { motion } from 'framer-motion';
 import { Lock, User, AlertCircle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/Button';
+import { BrandMark } from '../components/BrandMark';
 
 const storeName = "KET SKIN CARE BY MINA LA PREFEREE";
 
@@ -175,7 +176,8 @@ export function LoginPage() {
         className="w-full max-w-md"
       >
         <div className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-8">
-          <div className="text-center mb-8">
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <BrandMark size={64} />
             <AnimatedStoreName />
           </div>
 

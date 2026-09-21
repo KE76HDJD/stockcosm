@@ -23,9 +23,11 @@ export function UtilisateursPage() {
   useEffect(() => {
     withLoading(async () => {
       const u = await authApi.listUsers();
-      setUsers(u);
+      // Masquer le compte test 'admin' pour les autres admins (visible seulement si on est 'admin')
+      const isDevAdmin = currentUser?.username === 'admin';
+      setUsers(isDevAdmin ? u : u.filter((x) => x.username !== 'admin'));
     });
-  }, []);
+  }, [currentUser?.username]);
 
   const handleSubmit = async () => {
     if (!form.username || !form.password) { toast.error('Tous les champs sont requis'); return; }
@@ -36,7 +38,8 @@ export function UtilisateursPage() {
       setShowModal(false);
       setForm({ username: '', password: '', role: 'ASSISTANT' });
       const u = await authApi.listUsers();
-      setUsers(u);
+      const isDevAdmin = currentUser?.username === 'admin';
+      setUsers(isDevAdmin ? u : u.filter((x) => x.username !== 'admin'));
     } catch (err: any) {
       toast.error(err.response?.data?.detail || 'Erreur lors de la création');
     } finally {
