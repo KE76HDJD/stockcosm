@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, RefreshCw } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuth';
+import { BrandMark } from './BrandMark';
 
 const INACTIVITY_MS = 15 * 60 * 1000;
 const GRACE_MS = 2 * 60 * 1000;
@@ -63,6 +64,15 @@ export function KeepAlive() {
     };
   }, [isAuthenticated, resetInactivity, showInactivity]);
 
+  // Keep Render awake: ping /health toutes les 60s
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const ping = () => fetch('/api/health', { credentials: 'include' }).catch(() => {});
+    ping();
+    const id = window.setInterval(ping, 60_000);
+    return () => window.clearInterval(id);
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
     const origFetch = window.fetch;
@@ -111,26 +121,25 @@ export function KeepAlive() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 dark:bg-[#121416]/80 backdrop-blur-sm"
           >
-            <div className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-8 shadow-xl flex flex-col items-center gap-4 max-w-sm mx-4 text-center">
-              <div className="relative w-16 h-16">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
-                  className="absolute inset-0 rounded-full border-4 border-[#E8751A]/20 border-t-[#E8751A]"
-                />
-                <div className="absolute inset-3 rounded-full bg-[#E8751A]/10 flex items-center justify-center">
-                  <RefreshCw size={20} className="text-[#E8751A] animate-pulse" />
+            <div className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-8 shadow-xl flex flex-col items-center gap-5 max-w-sm mx-4 text-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
+                style={{ width: 72, height: 72 }}
+              >
+                <div style={{ transform: 'rotate(-360deg)' }}>
+                  <BrandMark size={64} />
                 </div>
-              </div>
+              </motion.div>
               <div>
                 <p className="font-heading font-700 text-base text-text-primary dark:text-[#E4E6E9]">Mina la Préférée se réveille</p>
-                <p className="text-sm text-text-secondary dark:text-[#8B9199] mt-1">Quelques instants...</p>
+                <p className="text-sm text-text-secondary dark:text-[#8B9199] mt-1">Un instant, on prépare votre boutique...</p>
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 {[0, 1, 2].map((i) => (
                   <motion.span
                     key={i}
-                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    animate={{ opacity: [0.3, 1, 0.3], scale: [0.9, 1.1, 0.9] }}
                     transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
                     className="w-2 h-2 rounded-full bg-[#E8751A]"
                   />
@@ -155,13 +164,8 @@ export function KeepAlive() {
               exit={{ scale: 0.95, opacity: 0 }}
               className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-6 shadow-xl max-w-md w-full text-center"
             >
-              <div className="w-14 h-14 rounded-full bg-[#E8751A]/10 flex items-center justify-center mx-auto mb-4">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                >
-                  <RefreshCw size={24} className="text-[#E8751A]" />
-                </motion.div>
+              <div className="mx-auto mb-4 flex justify-center">
+                <BrandMark size={56} />
               </div>
               <h3 className="font-heading font-700 text-lg text-text-primary dark:text-[#E4E6E9]">Toujours là ?</h3>
               <p className="text-sm text-text-secondary dark:text-[#8B9199] mt-2">
