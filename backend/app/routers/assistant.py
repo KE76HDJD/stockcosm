@@ -136,15 +136,24 @@ def detect_intent(question: str) -> tuple[str, dict]:
     if re.search(r"(stock|quantite|combien|reste|disponible|inventory)", q):
         name_match = re.search(
             r"(?:stock|quantite|combien|reste|disponible|inventory)\s+(?:de\s+|du\s+|des\s+|pour\s+|sur\s+)?\s*(.+)",
-            q_raw.lower(),
+            q,
         )
         if name_match:
             name = name_match.group(1).strip()
             name = re.sub(r"^(le\s+|la\s+|les\s+|un\s+|une\s+|'\s*)", "", name).strip()
-            # Nettoyer "sont stock" etc
             name = re.sub(r"\s+(sont|son)\s+stock.*$", "", name, flags=re.IGNORECASE).strip()
-            args["nom_produit"] = name
-            return "stock_produit", args
+            if len(name) >= 2:
+                args["nom_produit"] = name
+                return "stock_produit", args
+        # Cas "produit X son stock" / "X sont sotock" -> extraire avant son/sont stock
+        m2 = re.search(r"(.+?)\s+(?:son|sont)\s+stock", q)
+        if m2:
+            name = m2.group(1).strip()
+            # nettoyer "donne moi le", "produit"
+            name = re.sub(r"^(donne\s+moi\s+|donne\s+|le\s+|la\s+|les\s+|produit\s+|du\s+|de\s+)+", "", name).strip()
+            if len(name) >= 2:
+                args["nom_produit"] = name
+                return "stock_produit", args
         return "stock_help", {}
 
     # Bonjour / salut / aide
@@ -437,8 +446,8 @@ async def query_assistant(
     assistant_limiter.check(req, identifier=f"assistant:{current_user.id}")
 
     intent, args = detect_intent(body.question)
-    # Regex + Mistral ensemble : si unknown ou stock_produit avec nom vide, on tente Mistral
-    if intent == "unknown" or (intent == "stock_produit" and not args.get("nom_produit")) or (intent in ("recherche","stock_produit") and len(args.get("nom_produit","") or args.get("query","")) < 2):
+    # Regex + Mistral ensemble : si unknown/help ou stock_produit avec nom vide/court, on tente Mistral
+    if intent in ("unknown", "stock_help", "search_help") or (intent == "stock_produit" and not args.get("nom_produit")) or (intent in ("recherche","stock_produit") and len(args.get("nom_produit","") or args.get("query","")) < 2):
         # Contexte produits/categories pour Mistral
         try:
             prod_res = await db.execute(select(Produit.name).where(Produit.status == "ACTIVE").limit(40))
