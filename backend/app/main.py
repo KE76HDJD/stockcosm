@@ -83,6 +83,7 @@ app.include_router(admin.router)
 
 
 @app.get("/health")
+@app.get("/api/health")
 async def health_check():
     db_ok = False
     try:

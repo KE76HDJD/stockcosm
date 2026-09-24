@@ -119,18 +119,27 @@ export function KeepAlive() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 dark:bg-[#121416]/80 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-[14px]"
+            style={{ background: 'radial-gradient(at 50% 40%, rgba(232,117,26,0.09), transparent 60%), rgba(255,247,237,0.88)' }}
           >
             <div className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-8 shadow-xl flex flex-col items-center gap-5 max-w-sm mx-4 text-center">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
-                style={{ width: 72, height: 72 }}
-              >
-                <div style={{ transform: 'rotate(-360deg)' }}>
-                  <BrandMark size={64} />
-                </div>
-              </motion.div>
+              <div className="relative" style={{ width: 72, height: 72 }}>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                  className="absolute inset-0 rounded-full border-2 border-[#E8751A]/12 border-t-[#E8751A]/80"
+                />
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                  style={{ width: 72, height: 72 }}
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  <div style={{ transform: 'rotate(-360deg)' }}>
+                    <BrandMark size={64} />
+                  </div>
+                </motion.div>
+              </div>
               <div>
                 <p className="font-heading font-700 text-base text-text-primary dark:text-[#E4E6E9]">Mina la Préférée se réveille</p>
                 <p className="text-sm text-text-secondary dark:text-[#8B9199] mt-1">Un instant, on prépare votre boutique...</p>
@@ -156,7 +165,8 @@ export function KeepAlive() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-[14px] p-4"
+            style={{ background: 'radial-gradient(at 50% 40%, rgba(232,117,26,0.08), transparent 65%), rgba(255,247,237,0.88)' }}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -165,7 +175,16 @@ export function KeepAlive() {
               className="bg-white dark:bg-[#1C1F22] rounded-card border border-border dark:border-white/[0.08] p-6 shadow-xl max-w-md w-full text-center"
             >
               <div className="mx-auto mb-4 flex justify-center">
-                <BrandMark size={56} />
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+                  style={{ width: 56, height: 56 }}
+                  className="rounded-full border-2 border-[#E8751A]/10 border-t-[#E8751A]/70"
+                >
+                  <div style={{ transform: 'rotate(-360deg)', width: 52, height: 52 }} className="flex items-center justify-center">
+                    <BrandMark size={48} />
+                  </div>
+                </motion.div>
               </div>
               <h3 className="font-heading font-700 text-lg text-text-primary dark:text-[#E4E6E9]">Toujours là ?</h3>
               <p className="text-sm text-text-secondary dark:text-[#8B9199] mt-2">
